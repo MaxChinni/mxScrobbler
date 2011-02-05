@@ -2,31 +2,44 @@
 require('mxScrobbler.class.php');
 require('config-local.inc.php');
 
+/*
+ * Config
+ */
+$testDebug = TRUE;
+$testAuthentication = TRUE;
+$testScrobble = TRUE;
+$responseFormat = 'json';
+
+/*
+ * Init
+ */
 $scrobbler = new mxScrobbler();
-$scrobbler->debug = FALSE;
+$scrobbler->debug = $testDebug;
 $scrobbler->setApiKey($apikey);
 $scrobbler->setSharedSecret($sharedSecret);
-$scrobbler->setUsername($username)->setPassword($password);
+$scrobbler->setResponseFormat($responseFormat);
 
 /*
  * Authentication
  */
-$scrobbler->mobileAuth();
+if ($testAuthentication) {
+	$scrobbler->setUsername($username)->setPassword($password);
+	$scrobbler->mobileAuth();
+}
+
+/*
+ * Scrobble
+ */
+if ($testScrobble) {
+	$scrobbler->scrobble('The Rolling Stones', 'Wild Horses', '2011-01-28 12:00:00');
+}
 
 /*
  * artist.getSimilar
  */
-$artist = "Cake";
-$similar = $scrobbler->artistGetSimilar($artist);
-echo "I've found someone similar to $artist:\n";
-foreach($similar['similarartists']['artist'] as $n => $data) {
-	echo $data['name']."\n";
-}
-
-/*
- * scrobble
- */
-//$scrobbler->scrobble('The Rolling Stones', 'Wild Horses', '2011-01-28 12:00:00');
+//$artist = 'The Rolling Stones';
+//$similar = $scrobbler->artistGetSimilar($artist);
+//print_r($similar);
 
 echo "\n";
 ?>
