@@ -272,6 +272,29 @@ class mxScrobbler {
 		return($response);
 	}
 
+	function trackGetSimilar($artist, $track) {
+		$method = 'track.getSimilar';
+		$params = Array(
+			'artist' => $artist,
+			'track' => $track,
+			'autocorrect' => 1,
+			'limit' => 5,
+			'mbid' => NULL
+		);
+		$response = $this->lastfmCall($method, $params);
+		return($response);
+	}
+
+	function trackGetCorrection($artist, $track) {
+		$method = 'track.getCorrection';
+		$params = Array(
+			'artist' => $artist,
+			'track' => $track
+		);
+		$response = $this->lastfmCall($method, $params);
+		return($response);
+	}
+
 	function scrobble($artist, $track, $date = NULL) {
 		date_default_timezone_set('UTC');
 		$method = 'track.scrobble';

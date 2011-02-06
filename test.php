@@ -6,8 +6,8 @@ require('config-local.inc.php');
  * Config
  */
 $testDebug = TRUE;
-$testAuthentication = TRUE;
-$testScrobble = TRUE;
+$testAuthentication = FALSE;
+$testScrobble = FALSE;
 $responseFormat = 'json';
 
 /*
@@ -37,9 +37,12 @@ if ($testScrobble) {
 /*
  * artist.getSimilar
  */
-//$artist = 'The Rolling Stones';
+$artist = 'Blondie';
+$track = 'one way or another';
 //$similar = $scrobbler->artistGetSimilar($artist);
-//print_r($similar);
+$similar = $scrobbler->trackGetSimilar($artist, $track);
+//$similar = $scrobbler->trackGetCorrection($artist, $track);
+print_r($similar);
 
 echo "\n";
 ?>
