@@ -1,6 +1,6 @@
 <?php
-require('mxScrobbler.class.php');
-require('config-local.inc.php');
+require(dirname(__FILE__).'/../mxScrobbler.class.php');
+require(dirname(__FILE__).'/../config-local.inc.php');
 
 if ($argc !== 4) {
 	printf("\nUsage:\n");
@@ -13,7 +13,6 @@ $scrobbler = new mxScrobbler();
 $scrobbler->setApiKey($apikey);
 $scrobbler->setSharedSecret($sharedSecret);
 $scrobbler->setUsername($username)->setPassword($password);
-$scrobbler->setResponseFormat('');
 
 /*
  * Authentication

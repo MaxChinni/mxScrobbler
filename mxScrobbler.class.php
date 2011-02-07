@@ -34,6 +34,7 @@ class mxScrobbler {
 	private $proxyUserPassword;
 	private $proxyUrl;
 	private $proxyPort;
+	private $methods;
 
 	function __construct() {
 		$this->useProxy = FALSE;
@@ -45,6 +46,20 @@ class mxScrobbler {
 
 		$this->responseFormat = 'json';
 		$this->sessionKey = NULL;
+
+		/*
+		 * method definitions
+		 */
+		// auth
+		$this->createMethod('auth.getMobileSession', 'username; authToken');
+		// artist
+		$this->createMethod('artist.getSimilar', 'artist|mbid; ?autocorrect; ?limit');
+		$this->createMethod('artist.search', 'artist; ?limit; ?page');
+		// track
+		$this->createMethod('track.scrobble', 'track; timestamp; artist; ?album; ?albumArtist; ?context; ?streamId; ?trackNumber; ?mbid; ?duration', TRUE, TRUE, TRUE);
+		$this->createMethod('track.getInfo', '(artist, track)|mbid; ?autocorrect; ?username');
+		$this->createMethod('track.getSimilar', '(artist, track)|mbid; ?autocorrect; ?limit');
+		$this->createMethod('track.search', '?limit; ?page; track; ?artist');
 	}
 
 	function setApiKey($apikey) {
@@ -76,16 +91,125 @@ class mxScrobbler {
 		$this->responseFormat = '';
 		// TODO support for xml
 		if ($responseFormat !== 'json') {
-			throw new Exception('Now '.__CLASS__.' only supports json');
+			throw new mxScrobblerException('Now '.__CLASS__.' only supports json');
 		}
 		if (!in_array($responseFormat, Array('xml', 'json'))) {
-			throw new Exception("Error \"$responseFormat\" is not xml or json");
+			throw new mxScrobblerException("Error \"$responseFormat\" is not xml or json");
 		} else {
 			$this->responseFormat = $responseFormat;
 		}
 		return($this);
 	}
+	
+	private function createMethod($name, $params='', $authRequired=FALSE, $signatureRequired=TRUE, $sessionRequired=FALSE) {
+		$this->methods[$name] = Array(
+			'params' => $params,
+			'auth' => $authRequired,
+			'signature' => $signatureRequired,
+			'session' => $sessionRequired
+		);
+		return($this);
+	}
 
+	private function explodeMethodDefinedParams($methodName) {
+		$piece = explode(';', $this->methods[$methodName]['params']);
+		foreach($piece AS $n => $value) {
+			$piece[$n] = trim($value);
+		}
+		return($piece);
+	}
+
+	private function verifyMethod($name, $params) {
+		if (!isset($this->methods[$name])) {
+			throw new mxScrobblerException("$name is an unknown method");
+		}
+		$definedParams = $this->explodeMethodDefinedParams($name);
+		$knownParams = Array();
+
+		foreach($definedParams as $p) {
+			if (strpos($p, '|') !== FALSE) {
+				// check or
+				$pieces = explode('|', $p);
+				$condition = Array();
+				foreach($pieces AS $n => $piece) {
+					$piece = trim(strtr($piece, '()', '  '));
+					$condition[$piece] = TRUE;
+					foreach(explode(',', $piece) AS $n1 => $p1) {
+						$p1 = trim($p1);
+						if (!isset($params[$p1])) {
+							$condition[$piece] = FALSE;
+						} else {
+							// $p1 already checked, remove
+							unset($params[$p1]);
+						}
+					}
+				}
+				$totalVerify = NULL;
+				foreach($condition AS $n => $cond) {
+					if ($totalVerify === NULL) {
+						$totalVerify = $cond;
+					} else {
+						$totalVerify = $totalVerify || ($cond === TRUE);
+					}
+				}
+				if (!$totalVerify) {
+					throw new mxScrobblerException("Method $name must have \"$p\"");
+				}
+			} else {
+				// check optional / required
+				if ($p[0] != '?') {
+					$knownParams[] = $p;
+					if (!isset($params[$p])) {
+						throw new mxScrobblerException("Param \"$p\" is required for method $name");
+					}
+				} else {
+					$knownParams[] = substr($p, 1, strlen($p)-1);
+				}
+			}
+		}
+
+		// check unknown
+		foreach($params as $name => $value) {
+			if (!in_array($name, $knownParams)) {
+				throw new mxScrobblerException("Unknown param \"$name\"");
+			}
+		}
+
+		return(TRUE);
+	}
+
+	function callMethod($methodName, $params) {
+		$p = implode(', ', $params);
+		try {
+			$this->verifyMethod($methodName, $params);
+		} 
+		catch(mxScrobblerException $e) {
+			echo __CLASS__.'->'.__FUNCTION__. '(): '.$e->errorMessage()."\n";
+			return(TRUE);
+		}
+		if ($this->debug) {
+			echo "Method is ok, run $methodName($p)\n";
+		}
+		$response = $this->lastfmCall($methodName, $params);
+		return($response);
+	}
+
+	function scrobble($artist, $track, $date = NULL) {
+		date_default_timezone_set('UTC');
+		$method = 'track.scrobble';
+		$timestamp = date('U');
+
+		if ($date !== NULL) {
+			$timestamp = date('U', strtotime($date));
+		}
+		$params = Array(
+			'track' => $track,
+			'timestamp' => $timestamp,
+			'artist' => $artist,
+		);
+		$response = $this->lastfmCall($method, $params);
+		return($response);
+	}
 	private function getSignature($method, $params) {
 		$auth_sig = '';
 
@@ -106,13 +230,35 @@ class mxScrobbler {
 		return($this);
 	}
 
-	private function lastfmCall($method, $params, $authentication=FALSE) {
+	private function lastfmCall($method, $params) {
 		/*
 		 * example:
 		 * http://ws.audioscrobbler.com/2.0/?method=artist.getSimilar&api_key=abcd...
 		 */
 		$params['method'] = $method;
 		$params['api_key'] = $this->apikey;
+
+		/*
+		 * check auth, session, signature
+		 */
+		if ($this->methods[$method]['auth']) {
+			// check authentication
+			if (!isset($this->sessionKey)) {
+				throw new mxScrobblerException("Authentication required for $method");
+			}
+		}
+		if ($this->methods[$method]['session']) {
+			if (!isset($this->sessionKey)) {
+				throw new mxScrobblerException("Session required for $method");
+			}
+			// add session param
+			$params['sk'] = $this->sessionKey;
+		}
+		if ($this->methods[$method]['signature']) {
+			// sign params
+			$this->signParams($method, $params);
+		}
+
 		if ($this->responseFormat !== '') {
 			$params['format'] = $this->responseFormat;
 		}
@@ -144,7 +290,7 @@ class mxScrobbler {
 		if (($response = curl_exec($ch)) === FALSE) {
 			$this->errno = NULL;
 			$this->errMsg = curl_error($ch);
-			throw new Exception("Error $this->errno: $this->errMsg");
+			throw new mxScrobblerException("Error $this->errno: $this->errMsg");
 		} else {
 			if ($this->debug) {
 				print_r($response);
@@ -163,14 +309,14 @@ class mxScrobbler {
 				if (isset($response['error'])) {
 					$this->errno = $response['error'];
 					$this->errMsg = $response['message'];
-					throw new Exception("Error $this->errno: $this->errMsg");
+					throw new mxScrobblerException("Error $this->errno: $this->errMsg");
 				}
 				break;
 			case 'xml':
 				$response = $this->parseXml($response);
 				break;
 			default:
-				throw new Exception("Error unsupported responseFormat: \"$this->responseFormat\"");
+				throw new mxScrobblerException("Error unsupported responseFormat: \"$this->responseFormat\"");
 				break;
 		}
 		return($response);
@@ -245,74 +391,26 @@ class mxScrobbler {
 
 	function mobileAuth() {
 		$method = 'auth.getMobileSession';
-		$authentication = FALSE;
 		$authToken = md5($this->username.md5($this->password));
 
 		$params = Array(
 			'username' => $this->username,
 			'authToken' => $authToken
 		);
-		$this->signParams($method, $params);
-
-		$response = $this->lastfmCall($method, $params, $authentication);
+		$response = $this->lastfmCall($method, $params);
 		$this->sessionKey = $response['session']['key'];
 
 		return(TRUE);
 	}
 
-	function artistGetSimilar($artist) {
-		$method = 'artist.getSimilar';
-		$params = Array(
-			'limit' => 5,
-			'artist' => $artist,
-			'autocorrect' => 1,
-			'mbid' => NULL
-		);
-		$response = $this->lastfmCall($method, $params);
-		return($response);
-	}
+}
 
-	function trackGetSimilar($artist, $track) {
-		$method = 'track.getSimilar';
-		$params = Array(
-			'artist' => $artist,
-			'track' => $track,
-			'autocorrect' => 1,
-			'limit' => 5,
-			'mbid' => NULL
-		);
-		$response = $this->lastfmCall($method, $params);
-		return($response);
-	}
-
-	function trackGetCorrection($artist, $track) {
-		$method = 'track.getCorrection';
-		$params = Array(
-			'artist' => $artist,
-			'track' => $track
-		);
-		$response = $this->lastfmCall($method, $params);
-		return($response);
-	}
-
-	function scrobble($artist, $track, $date = NULL) {
-		date_default_timezone_set('UTC');
-		$method = 'track.scrobble';
-		$timestamp = date('U');
-
-		if ($date !== NULL) {
-			$timestamp = date('U', strtotime($date));
-		}
-		$params = Array(
-			'track' => $track,
-			'timestamp' => $timestamp,
-			'artist' => $artist,
-			'sk' => $this->sessionKey
-		);
-		$this->signParams($method, $params);
-
-		$response = $this->lastfmCall($method, $params);
-		return($response);
+class mxScrobblerException extends Exception {
+	public function errorMessage() {
+		$errorMsg = 'Error on line '.$this->getLine();
+		$errorMsg .= ' in '.basename($this->getFile()).': ';
+		$errorMsg .= $this->getMessage();
+		return($errorMsg);
 	}
 }
 

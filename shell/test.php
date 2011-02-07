@@ -1,11 +1,11 @@
 <?php
-require('mxScrobbler.class.php');
-require('config-local.inc.php');
+require(dirname(__FILE__).'/../mxScrobbler.class.php');
+require(dirname(__FILE__).'/../config-local.inc.php');
 
 /*
  * Config
  */
-$testDebug = TRUE;
+$testDebug = FALSE;
 $testAuthentication = FALSE;
 $testScrobble = FALSE;
 $responseFormat = 'json';
@@ -27,22 +27,17 @@ if ($testAuthentication) {
 	$scrobbler->mobileAuth();
 }
 
-/*
- * Scrobble
- */
-if ($testScrobble) {
-	$scrobbler->scrobble('The Rolling Stones', 'Wild Horses', '2011-01-28 12:00:00');
-}
+//$response = $scrobbler->callMethod('artist.getSimilar', Array('artist' => 'Blondie', 'limit' => 2));
+//$params = Array(
+//	'artist' => 'The Rolling Stones', 
+//	'track' => 'Wild Horses', 
+//	'timestamp' => 1296212400
+//);
+//$response = $scrobbler->callMethod('track.scrobble', $params);
+//$response = $scrobbler->callMethod('artist.search', Array('artist' => 'Blondie'));
+//$response = $scrobbler->callMethod('track.getInfo', Array('artist' => 'Blondie', 'track' => 'Heart of glass'));
+$response = $scrobbler->callMethod('track.search', Array('track' => 'Heart of glass'));
 
-/*
- * artist.getSimilar
- */
-$artist = 'Blondie';
-$track = 'one way or another';
-//$similar = $scrobbler->artistGetSimilar($artist);
-$similar = $scrobbler->trackGetSimilar($artist, $track);
-//$similar = $scrobbler->trackGetCorrection($artist, $track);
-print_r($similar);
-
+print_r($response);
 echo "\n";
 ?>
