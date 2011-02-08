@@ -36,7 +36,18 @@ if ($testAuthentication) {
 //$response = $scrobbler->callMethod('track.scrobble', $params);
 //$response = $scrobbler->callMethod('artist.search', Array('artist' => 'Blondie'));
 //$response = $scrobbler->callMethod('track.getInfo', Array('artist' => 'Blondie', 'track' => 'Heart of glass'));
-$response = $scrobbler->callMethod('track.search', Array('track' => 'Heart of glass'));
+//$response = $scrobbler->callMethod('track.search', Array('track' => 'Heart of glass'));
+//$params = Array(
+//	'artist' => 'Ligabue', 
+//	'album' => 'Ligabue',
+//	'autocorrect' => 1
+//);
+//$params = Array(
+//	'mbid' => '6853210f-8ed4-4b4c-8bd1-81d43ba33422'
+//);
+//$response = $scrobbler->callMethod('album.getInfo', $params);
+//$response = $scrobbler->callMethod('artist.getCorrection', Array('artist' => 'Rolling stones'));
+$response = $scrobbler->callMethod('artist.getEvents', Array('artist' => 'Rolling stones', 'autocorrect' => 1));
 
 print_r($response);
 echo "\n";
