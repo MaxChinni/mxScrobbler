@@ -23,18 +23,18 @@ class mxScrobbler {
 	const ENCODING = 'UTF-8';
 
 	public $debug;
-	private $apikey;
-	private $sharedSecret;
-	private $username;
-	private $password;
-	private $sessionKey;
-	private $responseFormat;
-	private $useProxy;
-	private $proxyAuth;
-	private $proxyUserPassword;
-	private $proxyUrl;
-	private $proxyPort;
-	private $methods;
+	protected $apikey;
+	protected $sharedSecret;
+	protected $username;
+	protected $password;
+	protected $sessionKey;
+	protected $responseFormat;
+	protected $useProxy;
+	protected $proxyAuth;
+	protected $proxyUserPassword;
+	protected $proxyUrl;
+	protected $proxyPort;
+	protected $methods;
 
 	function __construct() {
 		$this->useProxy = FALSE;
@@ -223,7 +223,7 @@ class mxScrobbler {
 		return($this);
 	}
 	
-	private function createMethod($name, $params='', $authRequired=FALSE, $signatureRequired=TRUE, $sessionRequired=FALSE) {
+	protected function createMethod($name, $params='', $authRequired=FALSE, $signatureRequired=TRUE, $sessionRequired=FALSE) {
 		$this->methods[$name] = Array(
 			'params' => $params,
 			'auth' => $authRequired,
@@ -233,7 +233,7 @@ class mxScrobbler {
 		return($this);
 	}
 
-	private function explodeMethodDefinedParams($methodName) {
+	protected function explodeMethodDefinedParams($methodName) {
 		$piece = explode(';', $this->methods[$methodName]['params']);
 		foreach($piece AS $n => $value) {
 			$piece[$n] = trim($value);
@@ -241,7 +241,7 @@ class mxScrobbler {
 		return($piece);
 	}
 
-	private function verifyMethod($name, $params) {
+	protected function verifyMethod($name, $params) {
 		if (!isset($this->methods[$name])) {
 			throw new mxScrobblerException("$name is an unknown method");
 		}
@@ -332,7 +332,7 @@ class mxScrobbler {
 		$response = $this->lastfmCall($method, $params);
 		return($response);
 	}
-	private function getSignature($method, $params) {
+	protected function getSignature($method, $params) {
 		$auth_sig = '';
 
 		$params['method'] = $method;
@@ -346,13 +346,13 @@ class mxScrobbler {
 		return($auth_sig);
 	}
 
-	private function signParams($method, &$params) {
+	protected function signParams($method, &$params) {
 		$params['api_key'] = $this->apikey;
 		$params['api_sig'] = $this->getSignature($method, $params);
 		return($this);
 	}
 
-	private function lastfmCall($method, $params) {
+	protected function lastfmCall($method, $params) {
 		/*
 		 * example:
 		 * http://ws.audioscrobbler.com/2.0/?method=artist.getSimilar&api_key=abcd...
@@ -424,7 +424,7 @@ class mxScrobbler {
 		return($response);
 	}
 
-	private function parseResponse($response) {
+	protected function parseResponse($response) {
 		switch ($this->responseFormat) {
 			case 'json':
 				$response = json_decode($response, TRUE);
@@ -444,7 +444,7 @@ class mxScrobbler {
 		return($response);
 	}
 
-	private function parseXml($xmlString) {
+	protected function parseXml($xmlString) {
     $xml_values = Array();
     $parser = xml_parser_create('');
     if (!$parser)
