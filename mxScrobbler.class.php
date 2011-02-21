@@ -29,20 +29,22 @@ class mxScrobbler {
 	protected $password;
 	protected $sessionKey;
 	protected $responseFormat;
-	protected $useProxy;
-	protected $proxyAuth;
-	protected $proxyUserPassword;
-	protected $proxyUrl;
-	protected $proxyPort;
+	var $useProxy;
+	var $proxyAuth;
+	var $proxyUserPassword;
+	var $proxyUrl;
+	var $proxyPort;
+	var $proxyUserAgent;
 	protected $methods;
 
 	function __construct() {
 		$this->useProxy = FALSE;
 		$this->proxyUrl = NULL;
 		$this->proxyPort = 8080;
-		$this->proxyType = CURLOPT_PROXYTYPE;
+		$this->proxyUserAgent = 'Mozilla/4.0 (compatible; MSIE 5.01; Windows NT 5.0)';
+		$this->proxyType = CURLPROXY_HTTP;
 		$this->proxyAuth = CURLAUTH_BASIC;
-		$this->proxyUserPassword = '';
+		$this->proxyUserPassword = NULL;
 
 		$this->responseFormat = 'json';
 		$this->sessionKey = NULL;
@@ -273,7 +275,8 @@ class mxScrobbler {
 					}
 				}
 				if (!$totalVerify) {
-					throw new mxScrobblerException("Method $name must have \"$p\"");
+					$imp = implode('|', $params);
+					throw new mxScrobblerException("Method $name must have \"$p\" (\"$imp\" given)");
 				}
 			} else {
 				// check optional / required
@@ -400,7 +403,10 @@ class mxScrobbler {
 			curl_setopt($ch, CURLOPT_PROXYPORT, $this->proxyPort);
 			curl_setopt($ch, CURLOPT_PROXYTYPE, $this->proxyType);
 			curl_setopt($ch, CURLOPT_PROXYAUTH, $this->proxyAuth);
-			curl_setopt($ch, CURLOPT_PROXYUSERPWD, $this->proxyUserPassword);
+			if ($this->proxyUserPassword !== NULL) {
+				curl_setopt($ch, CURLOPT_PROXYUSERPWD, $this->proxyUserPassword);
+			}
+			curl_setopt($ch, CURLOPT_USERAGENT, $this->proxyUserAgent); 
 		}
 		curl_setopt($ch, CURLOPT_VERBOSE, $this->debug);
 
@@ -410,7 +416,7 @@ class mxScrobbler {
 		if (($response = curl_exec($ch)) === FALSE) {
 			$this->errno = NULL;
 			$this->errMsg = curl_error($ch);
-			throw new mxScrobblerException("Error $this->errno: $this->errMsg");
+			throw new mxScrobblerException("Error $this->errno: $this->errMsg", $this->errno);
 		} else {
 			if ($this->debug) {
 				print_r($response);
@@ -429,7 +435,7 @@ class mxScrobbler {
 				if (isset($response['error'])) {
 					$this->errno = $response['error'];
 					$this->errMsg = $response['message'];
-					throw new mxScrobblerException("Error $this->errno: $this->errMsg");
+					throw new mxScrobblerException("Error $this->errno: $this->errMsg", $this->errno);
 				}
 				break;
 			case 'xml':
