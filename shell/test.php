@@ -35,7 +35,12 @@ if ($testAuthentication) {
 //);
 //$response = $scrobbler->callMethod('track.scrobble', $params);
 //$response = $scrobbler->callMethod('artist.search', Array('artist' => 'Blondie'));
-//$response = $scrobbler->callMethod('track.getInfo', Array('artist' => 'Blondie', 'track' => 'Heart of glass'));
+$params = Array(
+	'artist' => 'Rolling Stones', 
+	'track' => 'Sympathy for the devil',
+	'autocorrect' => '1'
+);
+$response = $scrobbler->callMethod('track.getInfo', $params);
 //$response = $scrobbler->callMethod('track.search', Array('track' => 'Heart of glass'));
 //$params = Array(
 //	'artist' => 'Ligabue', 
@@ -47,7 +52,7 @@ if ($testAuthentication) {
 //);
 //$response = $scrobbler->callMethod('album.getInfo', $params);
 //$response = $scrobbler->callMethod('artist.getCorrection', Array('artist' => 'Rolling stones'));
-$response = $scrobbler->callMethod('artist.getEvents', Array('artist' => 'Rolling stones', 'autocorrect' => 1));
+//$response = $scrobbler->callMethod('artist.getEvents', Array('artist' => 'Rolling stones', 'autocorrect' => 1));
 
 print_r($response);
 echo "\n";

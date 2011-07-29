@@ -449,22 +449,22 @@ class mxScrobbler {
 	}
 
 	protected function parseXml($xmlString) {
-    $xml_values = Array();
-    $parser = xml_parser_create('');
-    if (!$parser)
+		$xml_values = Array();
+		$parser = xml_parser_create('');
+		if (!$parser)
 			return false;
-    xml_parser_set_option($parser, XML_OPTION_TARGET_ENCODING, 'UTF-8');
-    xml_parser_set_option($parser, XML_OPTION_CASE_FOLDING, 0);
-    xml_parser_set_option($parser, XML_OPTION_SKIP_WHITE, 1);
-    xml_parse_into_struct($parser, trim($xmlString), $xml_values);
-    xml_parser_free($parser);
-    if (!$xml_values)
+		xml_parser_set_option($parser, XML_OPTION_TARGET_ENCODING, 'UTF-8');
+		xml_parser_set_option($parser, XML_OPTION_CASE_FOLDING, 0);
+		xml_parser_set_option($parser, XML_OPTION_SKIP_WHITE, 1);
+		xml_parse_into_struct($parser, trim($xmlString), $xml_values);
+		xml_parser_free($parser);
+		if (!$xml_values)
 			return array();
-    $xml_array = array();
-    $last_tag_ar =& $xml_array;
-    $parents = array();
-    $last_counter_in_tag = array(1=>0);
-    foreach ($xml_values as $data) {
+		$xml_array = array();
+		$last_tag_ar =& $xml_array;
+		$parents = array();
+		$last_counter_in_tag = array(1=>0);
+		foreach ($xml_values as $data) {
 			switch($data['type']) {
 				case 'open':
 					$last_counter_in_tag[$data['level']+1] = 0;
@@ -492,9 +492,9 @@ class mxScrobbler {
 					break;
 				default:
 					break;
-			};
-    }
-    return $xml_array;
+			}
+		}
+		return $xml_array;
 	}
 
 	function getValueByPath($__xml_tree, $__tag_path) {
